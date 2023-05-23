@@ -1,5 +1,5 @@
 # Project exclude paths
-/target/
+/target
 /Cargo.lock
-/.idea/
+/.idea
 /gaygebot-rs.iml

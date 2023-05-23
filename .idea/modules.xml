@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/BetterBotCommands.iml" filepath="$PROJECT_DIR$/BetterBotCommands.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gaygebot-rs.iml" filepath="$PROJECT_DIR$/gaygebot-rs.iml" />
     </modules>
   </component>
 </project>

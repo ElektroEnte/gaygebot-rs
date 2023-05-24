@@ -12,6 +12,15 @@ impl Channel {
     }
 }
 
+impl Default for Channel {
+    fn default() -> Self {
+        Channel {
+            id: "0".to_string(),
+            login: "login".to_string(),
+        }
+    }
+}
+
 impl From<PrivmsgMessage> for Channel {
     fn from(privmsg: PrivmsgMessage) -> Self {
         Channel {

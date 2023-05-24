@@ -5,7 +5,6 @@ use crate::bot::{Bot, LogMode};
 pub mod bot;
 pub mod pattern;
 pub mod bot_env;
-pub mod cmd;
 
 #[tokio::main]
 async fn main() {

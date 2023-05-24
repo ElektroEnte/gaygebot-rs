@@ -2,6 +2,7 @@ use twitch_irc::message::PrivmsgMessage;
 use crate::bot::{Chatter, Channel, Message};
 use crate::bot_env::environment::Environment;
 
+#[derive(Clone, Debug)]
 pub struct Context {
     pub source: PrivmsgMessage,
     pub chatter: Chatter,

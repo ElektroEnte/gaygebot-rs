@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+#[derive(Clone, Debug)]
 pub enum Variable {
     Null,
-    String(String),
+    Str(String),
     Integer(i64),
     Float(f64),
     Bool(bool),
     List(Vec<Variable>),
-    HashMap(HashMap<String, Variable>)
+    Map(HashMap<String, Variable>)
 }

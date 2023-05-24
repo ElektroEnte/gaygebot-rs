@@ -1,6 +1,6 @@
 use twitch_irc::message::PrivmsgMessage;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Channel {
     pub id: String,
     pub login: String,

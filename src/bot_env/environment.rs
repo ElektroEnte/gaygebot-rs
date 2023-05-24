@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use crate::bot_env::variable::Variable;
 
+#[derive(Clone, Debug)]
 pub struct Environment {
-    id: String,
-    name: String,
-    prefix: String,
-    variables: HashMap<String, Variable>,
+    pub id: String,
+    pub name: String,
+    pub prefix: String,
+    pub variables: HashMap<String, Variable>,
 }
 
 impl Default for Environment {

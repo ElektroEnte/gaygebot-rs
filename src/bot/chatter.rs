@@ -1,6 +1,6 @@
 use twitch_irc::message::{Badge, PrivmsgMessage, RGBColor};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Chatter {
     pub id: String,
     pub login: String,

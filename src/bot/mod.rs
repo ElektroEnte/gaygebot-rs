@@ -1,4 +1,14 @@
-mod context;
+pub use context::Context;
+pub use chatter::Chatter;
+pub use channel::Channel;
+pub use message::Message;
+
+pub mod context;
+pub mod channel;
+pub mod message;
+pub mod chatter;
+pub mod bot_input;
+pub mod bot_output;
 
 use tokio;
 use twitch_irc::{login::StaticLoginCredentials, message::ServerMessage, ClientConfig, SecureTCPTransport, TwitchIRCClient, Error};

@@ -1,4 +1,6 @@
 use twitch_irc::message::PrivmsgMessage;
+use twitch_irc::{Error, SecureTCPTransport, TwitchIRCClient};
+use twitch_irc::login::StaticLoginCredentials;
 use crate::bot::{Chatter, Channel, Message};
 use crate::bot_env::environment::Environment;
 
@@ -10,6 +12,14 @@ pub struct Context {
     pub channel: Channel,
     pub message: Message,
     pub bot_env: Environment,
+}
+
+impl Context {
+    pub async fn send(&self, client:  &mut TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>, s: String) -> Result<(), Error<SecureTCPTransport, StaticLoginCredentials>> {
+        let channel = self.channel.login.clone();
+        client.say(channel, s).await?;
+        Ok(())
+    }
 }
 
 impl From<PrivmsgMessage> for Context {

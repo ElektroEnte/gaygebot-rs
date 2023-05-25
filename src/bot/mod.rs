@@ -39,6 +39,7 @@ impl Bot {
         ClientConfig::new_simple(StaticLoginCredentials::new(self.login.to_owned(), self.oauth.to_owned()))
     }
 
+    /// runs the bot instance
     pub async fn run(&mut self, initial_channels: Vec<String>, log_mode: LogMode) -> Result<(), Error<SecureTCPTransport, StaticLoginCredentials>> {
         let config = self.generate_config();
         let (mut incoming_messages, mut client) = TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(config);
@@ -77,10 +78,11 @@ impl Bot {
         println!("{:?}", cmd_input);
 
         match cmd_input {
-            Input::Normal(input) => {},
+            Input::Normal(_) => {},
             Input::Command(input) => {
                 if input.identifier == "ping" {
-                    client.say(ctx.channel.login, "pong".to_string()).await?;
+                    // client.say(ctx.channel.login, "pong".to_string()).await?;
+                    ctx.send(client, "pong".to_string()).await?;
                 }
 
                 else if input.identifier == "debug" {

@@ -2,7 +2,7 @@ pub use context::Context;
 pub use chatter::Chatter;
 pub use channel::Channel;
 pub use message::Message;
-pub use bot_input::{CommandInput, NormalInput, Input};
+pub use bot_input::{Input};
 pub use bot_output::Output;
 
 pub mod context;
@@ -15,6 +15,8 @@ pub mod bot_output;
 use tokio;
 use twitch_irc::{login::StaticLoginCredentials, message::ServerMessage, ClientConfig, SecureTCPTransport, TwitchIRCClient, Error};
 use twitch_irc::message::PrivmsgMessage;
+use crate::pattern::{Identifier, IdentifierType, InputPattern, InternalPattern, OutputPattern, ResponseType};
+use crate::pattern::pattern::Pattern;
 
 pub enum LogMode {
     None,
@@ -72,41 +74,13 @@ impl Bot {
     }
 
     async fn on_private_message(client: &mut TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>, msg: PrivmsgMessage) -> Result<(), Error<SecureTCPTransport, StaticLoginCredentials>> {
-        let ctx =  Context::from(msg);
-        let cmd_input = Input::from(ctx.clone());
+        let ctx = Context::from(msg);
+        let input = Input::from(ctx.clone());
 
-        println!("{:?}", cmd_input);
+        let ping_pattern: Pattern = Pattern::new_simple_command("ping".to_string(), "pong".to_string(), false, "pings and pongs".to_string());
 
-        match cmd_input {
-            Input::Normal(_) => {},
-            Input::Command(input) => {
-                if input.identifier == "ping" {
-                    // client.say(ctx.channel.login, "pong".to_string()).await?;
-                    ctx.send(client, "pong".to_string()).await?;
-                }
-
-                else if input.identifier == "debug" {
-                    let mut say_string = String::new();
-
-                    // push identifier
-                    say_string.push_str(format!("i: {} - ", input.identifier).as_str());
-
-                    // push normal args
-                    say_string.push_str("a: ");
-                    for arg in input.args {
-                        say_string.push_str(format!("{}, ", arg.as_str()).as_str());
-                    }
-                    say_string.push_str("- ");
-
-                    // push keyword args
-                    say_string.push_str("kw: ");
-                    for (key, value) in input.kwargs {
-                        say_string.push_str(format!("{}:{}, ", key, value).as_str());
-                    }
-
-                    client.say(ctx.channel.login, say_string).await?;
-                }
-            },
+        if ping_pattern.matches_input(&input) {
+            ping_pattern.execute_with(input).send_in_context_using(client).await?;
         }
 
         Ok(())

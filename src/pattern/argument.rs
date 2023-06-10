@@ -1,15 +1,21 @@
+// #[derive(Clone, Debug)]
+// pub enum ArgumentType {
+//     Normal,
+//     Keyword,
+//     // Text,
+// }
+
 #[derive(Clone, Debug)]
-pub enum ArgumentType {
-    Normal,
-    Keyword,
-    Text,
+pub struct ArgumentPattern {
+    name: String,
+    default: String,
+    is_required: bool,
 }
 
 #[derive(Clone, Debug)]
-pub struct Argument {
-    pub argument_type: ArgumentType,
-    pub is_required: bool,
-    pub identifier: String,
-    pub default: String,
-    pub info: String,
+pub struct KeywordArgumentPattern {
+    key: String,
+    default_value: String,
+    is_required: bool,
 }
+

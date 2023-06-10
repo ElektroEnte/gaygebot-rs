@@ -1,4 +1,3 @@
-pub use argument::{Argument, ArgumentType};
 pub use input_pattern::InputPattern;
 pub use output_pattern::{OutputPattern, ResponseType};
 pub use identifier::{Identifier, IdentifierType};

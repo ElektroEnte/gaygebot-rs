@@ -19,14 +19,14 @@ impl Pattern {
         }
     }
 
-    pub fn new_simple_command(identifier: String, response: String, is_me: bool, info: String) -> Self {
-        Pattern::new(
-            InputPattern::new(vec![], info),
-            InternalPattern::new(vec![], vec![]),
-            OutputPattern::new(response, is_me, ResponseType::Normal),
-            Identifier::new(IdentifierType::Command(identifier)),
-        )
-    }
+    // pub fn new_simple_command(identifier: String, response: String, is_me: bool, info: String) -> Self {
+    //     Pattern::new(
+    //         InputPattern::new(vec![], info),
+    //         InternalPattern::new(vec![], vec![]),
+    //         OutputPattern::new(response, is_me, ResponseType::Normal),
+    //         Identifier::new(IdentifierType::Command(identifier)),
+    //     )
+    // }
 
     pub fn matches_input(&self, input: &Input) -> bool {
         return match self.identifier.identifier_type.clone() {

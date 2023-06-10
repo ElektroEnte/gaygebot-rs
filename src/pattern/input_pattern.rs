@@ -1,13 +1,17 @@
-use crate::pattern::argument::Argument;
+use crate::bot::Input;
+use crate::pattern::argument::{ArgumentPattern, KeywordArgumentPattern};
 
 #[derive(Clone, Debug)]
 pub struct InputPattern {
-    pub arguments: Vec<Argument>,
+    pub arguments: Vec<ArgumentPattern>,
+    pub kw_arguments: Vec<KeywordArgumentPattern>,
     pub info: String,
 }
 
 impl InputPattern {
-    pub fn new(arguments: Vec<Argument>, info: String) -> Self {
-        InputPattern { arguments, info }
+    pub fn new(arguments: Vec<ArgumentPattern>, kw_arguments: Vec<KeywordArgumentPattern>, info: String) -> Self {
+        InputPattern { arguments, kw_arguments, info }
     }
+
+    // TODO pub fn check_arguments(&self, input: Input) -> Result<(), String>
 }

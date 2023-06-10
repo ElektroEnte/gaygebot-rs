@@ -12,6 +12,7 @@ pub struct Context {
     pub channel: Channel,
     pub message: Message,
     pub environment: Environment,
+    pub command_history: Vec<String>,
 }
 
 impl Context {
@@ -48,6 +49,7 @@ impl From<PrivmsgMessage> for Context {
             channel: Channel::from(privmsg.clone()),
             message: Message::from(privmsg.clone()),
             environment: Environment::default(), // Change to using actual environments once ready
+            command_history: vec![],
         }
     }
 }

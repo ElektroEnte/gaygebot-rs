@@ -16,8 +16,8 @@ impl From<i64> for Counter {
 }
 
 impl Counter {
-    pub fn new(value: &impl Into<i64>) -> Self {
-        Counter { value: value.into() }
+    pub fn new(value: i64) -> Self {
+        Counter { value }
     }
 
     pub fn get(&self) -> i64 {

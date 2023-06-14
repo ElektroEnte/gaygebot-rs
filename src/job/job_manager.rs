@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
 use crate::bot::Input;
-use crate::bot_env::environment::Environment;
+use crate::bot::env::environment::Environment;
+use crate::bot::identifier::IdentifierType;
 use crate::job::{
     job::Job,
     job_parameter::JobParameter,
     job_pattern::JobPattern,
 };
-use crate::pattern::IdentifierType;
+use crate::job::library::PrefixJob;
 use super::library::{
     CommandJob,
     CustomJob,
@@ -20,7 +21,8 @@ impl JobManager {
     pub fn execute_job(name: &String, input: &mut Input, params: HashMap<String, String>) -> String {
         match name.as_str() {
             "ping" => { return PingJob::new().execute(input, params); }
-            "command" => { return CommandJob::new().execute(input, params); }
+            "command" | "cmd" | "pattern" => { return CommandJob::new().execute(input, params); }
+            "prefix" => { return PrefixJob::new().execute(input, params); }
             _ => {}
         }
 
@@ -46,7 +48,8 @@ impl JobManager {
     pub fn get_job_params(name: &String, input: &Input) -> Vec<JobParameter> {
         match name.as_str() {
             "ping" => { return PingJob::new().get_params(); }
-            "command" => { return CommandJob::new().get_params(); }
+            "command" | "cmd" | "pattern" => { return CommandJob::new().get_params(); }
+            "prefix" => { return PrefixJob::new().get_params(); }
             _ => {}
         }
 

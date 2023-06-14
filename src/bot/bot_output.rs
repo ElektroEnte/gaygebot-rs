@@ -1,7 +1,7 @@
 use twitch_irc::{Error, SecureTCPTransport, TwitchIRCClient};
 use twitch_irc::login::StaticLoginCredentials;
 use crate::bot::Input;
-use crate::pattern::ResponseType;
+use super::ResponseType;
 
 #[derive(Clone, Debug)]
 pub struct Output {

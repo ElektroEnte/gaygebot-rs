@@ -1,9 +1,16 @@
 use std::collections::HashMap;
-use crate::bot::Input;
-use crate::bot_env::environment::Environment;
-use crate::job::job::Job;
-use crate::job::job_parameter::JobParameter;
-use crate::job::job_pattern::JobPattern;
+
+use crate::bot::{
+    Input,
+    env::environment::Environment,
+};
+
+use super::super::{
+    job_pattern::JobPattern,
+    job_parameter::JobParameter,
+    job::Job,
+};
+
 
 pub struct CommandJob;
 
@@ -29,27 +36,29 @@ impl Job for CommandJob {
             }
         }
 
-        return match action.as_str() {
-            "add" => { self.add_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
+        let return_string = match action.as_str() {
+            "create" | "new" | "add" => { self.add_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
             "edit" => { self.edit_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
-            "remove" => { self.remove_pattern(&mut input.ctx.environment, command) }
-            "addargument" => {
-                self.add_pattern_argument(
+            "remove" | "delete" | "rmv" => { self.remove_pattern(&mut input.ctx.environment, command) }
+            "addargument" | "addarg" | "addparameter" | "addparam" | "addprm" => {
+                self.add_pattern_parameter(
                     &mut input.ctx.environment,
                     command,
                     words.get(3).unwrap_or(&"").to_string(),
                     words.get(4).unwrap_or(&"").to_string(),
                 )
             }
-            "removeargument" => {
-                self.remove_pattern_argument(
+            "removeargument" | "removearg" | "rmvarg" | "removeparameter" | "removeparam" | "rmvparam" | "rmvprm" | "deleteargument" | "deletearg" | "deleteparameter" | "deleteparam" => {
+                self.remove_pattern_parameter(
                     &mut input.ctx.environment,
                     command,
                     words.get(3).unwrap_or(&"").to_string())
             }
-            "info" => { self.info(&mut input.ctx.environment, command) }
+            "info" | "debug" => { self.info(&mut input.ctx.environment, command) }
             _ => { "Invalid action.".to_string() }
         };
+
+        format!("\\.me{}", return_string)
     }
 
     fn get_params(&self) -> Vec<JobParameter> {
@@ -61,35 +70,38 @@ impl CommandJob {
     pub fn new() -> Self { CommandJob {} }
 
     fn info(&self, env: &mut Environment, name: String) -> String {
-        for pattern in &env.patterns {
-            if pattern.name == name {
-                return format!("name: '{}', args: {:?}", pattern.name, pattern.input_params);
-            }
+        if let Some(pattern) = env.get_pattern(&name) {
+            return format!("name: '{}', args: {:?}", pattern.name, pattern.input_params);
         }
 
         "Command not found.".to_string()
     }
 
     fn add_pattern(&self, env: &mut Environment, name: String, output_pattern: String) -> String {
-        for pattern in &env.patterns {
-            if &pattern.name == &name { return format!("Command pattern name '{}' already exists.", &name); }
+        if env.has_pattern(&name) {
+            return format!("Command pattern name '{}' already exists.", &name);
+        }
+
+        if env.patterns.len() >= 1000 {
+            return "Limit of 1000 commands patterns reached.".to_string();
         }
 
         env.patterns.push(JobPattern::new(name.clone(), output_pattern));
         format!("Added command pattern '{}' to environment '{}'.", &name, &env.name)
     }
 
+    
     fn edit_pattern(&self, env: &mut Environment, name: String, output_pattern: String) -> String {
-        for (pattern, i) in env.patterns.clone().iter().zip(0..env.patterns.len()) {
-            if &pattern.name == &name {
-                env.patterns.remove(i);
-            }
+        if let Some(pattern) = env.get_mut_pattern(&name) {
+            pattern.output_string = output_pattern
+        } else {
+            return "Command doesn't exist.".to_string();
         }
 
-        env.patterns.push(JobPattern::new(name.clone(), output_pattern));
         format!("Edited command pattern '{}' in environment '{}'.", &name, &env.name)
     }
 
+    // Removes a pattern with the given name from the current env.
     fn remove_pattern(&self, env: &mut Environment, name: String) -> String {
         for (pattern, i) in env.patterns.iter().zip(0..env.patterns.len()) {
             if &pattern.name == &name {
@@ -101,33 +113,38 @@ impl CommandJob {
         format!("Command pattern '{}' doesn't exist in this environment.", name)
     }
 
-    fn add_pattern_argument(&self, env: &mut Environment, pattern_name: String, arg_name: String, arg_default: String) -> String {
-        if arg_name == "".to_string() {
+    // Adds a parameter to the given pattern name in the current env.
+    fn add_pattern_parameter(&self, env: &mut Environment, pattern_name: String, param_name: String, param_default: String) -> String {
+        if param_name == "".to_string() {
             return "Name of argument missing.".to_string();
         }
 
-        for pattern in env.patterns.iter_mut() {
-            if pattern.name == pattern_name && !pattern.has_argument(&arg_name) {
-                pattern.add_argument(arg_name.to_owned(), arg_default);
-                return format!("Added argument '{}' to pattern '{}' in environment '{}'.", arg_name, pattern_name, env.name);
-            }
+        if param_name.contains(&['[', ']', '\\'][..]) {
+            return "Parameter name can't contain '[', ']' or '\\'.".to_string();
         }
 
-        format!("Command pattern '{}' doesn't exist in this environment, or already has an argument called {}.", pattern_name, arg_name)
+        return if let Some(pattern) = env.get_mut_pattern(&pattern_name) {
+            if pattern.input_params.len() >= 255 { return "Maximum of 255 parameters reached.".to_string(); }
+
+            pattern.add_parameter(param_name.to_owned(), param_default.to_owned());
+            format!("Added argument '{}' to pattern '{}' in environment '{}'.", param_name, pattern_name, env.name)
+        } else {
+            format!("Command pattern '{}' doesn't exist in this environment.", pattern_name)
+        }
     }
 
-    fn remove_pattern_argument(&self, env: &mut Environment, pattern_name: String, arg_name: String) -> String {
-        if arg_name == "".to_string() {
-            return "Name of argument missing.".to_string();
+    fn remove_pattern_parameter(&self, env: &mut Environment, pattern_name: String, param_name: String) -> String {
+        if param_name == "".to_string() {
+            return "Name of parameter missing.".to_string();
         }
 
         for pattern in env.patterns.iter_mut() {
-            if pattern.name == pattern_name && pattern.has_argument(&arg_name) {
-                pattern.remove_argument(arg_name.to_owned());
-                return format!("Removed argument '{}' from pattern '{}'.", arg_name, pattern_name);
+            if pattern.name == pattern_name && pattern.has_parameter(&param_name) {
+                pattern.remove_parameter(&param_name);
+                return format!("Removed parameter '{}' from pattern '{}'.", param_name, pattern_name);
             }
         }
 
-        format!("Command pattern '{}' doesn't exist in this environment, or doesn't have an argument called {}.", pattern_name, arg_name)
+        format!("Command pattern '{}' doesn't exist in this environment, or doesn't have an parameter called {}.", pattern_name, param_name)
     }
 }

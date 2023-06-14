@@ -80,8 +80,13 @@ impl Job for CustomJob {
                 .get(param.name.as_str())
                 .unwrap_or(&param.default);
 
+            // output = output.replace(
+            //     format!("\\arg.{}", param.name).as_str(),
+            //     given_param,
+            // );
+
             output = output.replace(
-                format!("\\arg.{}", param.name).as_str(),
+                format!("\\[{}]", param.name).as_str(),
                 given_param,
             );
         }

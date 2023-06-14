@@ -2,7 +2,7 @@ use twitch_irc::message::PrivmsgMessage;
 use twitch_irc::{Error, SecureTCPTransport, TwitchIRCClient};
 use twitch_irc::login::StaticLoginCredentials;
 use crate::bot::{Chatter, Channel, Message};
-use crate::bot_env::environment::Environment;
+use super::env::environment::Environment;
 
 #[derive(Clone, Debug)]
 pub struct Context {

@@ -3,8 +3,9 @@ pub use context::Context;
 pub use chatter::Chatter;
 pub use channel::Channel;
 pub use message::Message;
-pub use bot_input::{Input};
+pub use bot_input::Input;
 pub use bot_output::Output;
+pub use response_type::ResponseType;
 
 pub mod context;
 pub mod channel;
@@ -12,16 +13,22 @@ pub mod message;
 pub mod chatter;
 pub mod bot_input;
 pub mod bot_output;
+pub mod env;
+pub mod response_type;
+pub mod identifier;
 
 use tokio;
-use twitch_irc::{login::StaticLoginCredentials, message::ServerMessage, ClientConfig, SecureTCPTransport, TwitchIRCClient, Error};
+
+use twitch_irc::{ClientConfig, Error, login::StaticLoginCredentials, message::ServerMessage, SecureTCPTransport, TwitchIRCClient};
 use twitch_irc::message::PrivmsgMessage;
-use crate::bot_env::environment::Environment;
-use crate::job::job_manager::JobManager;
-use crate::job::job_parameter::JobParameter;
-use crate::job::job_pattern::JobPattern;
-use crate::pattern::{Identifier, IdentifierType, InputPattern, InternalPattern, OutputPattern, ResponseType};
-use crate::pattern::pattern::Pattern;
+
+use env::environment::Environment;
+
+use crate::job::{
+    job_manager::JobManager,
+    job_parameter::JobParameter,
+    job_pattern::JobPattern,
+};
 
 pub enum LogMode {
     None,

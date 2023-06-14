@@ -4,7 +4,7 @@ use crate::bot::{Context, Output};
 use crate::job::job::Job;
 use crate::job::job_manager::JobManager;
 use crate::job::job_parameter::JobParameter;
-use crate::pattern::ResponseType;
+use super::response_type::ResponseType;
 
 #[derive(Clone, Debug)]
 pub struct Input {
@@ -87,10 +87,10 @@ impl Input {
         // }
 
         let first_me = job_result
-            .find("\\me")
+            .find("\\.me")
             .unwrap_or(usize::MAX);
         let first_notme = job_result
-            .find("\\notme")
+            .find("\\.notme")
             .unwrap_or(usize::MAX);
 
         if first_me < first_notme {
@@ -100,13 +100,13 @@ impl Input {
         }
 
         let first_reply = job_result
-            .find("\\reply")
+            .find("\\.reply")
             .unwrap_or(usize::MAX);
         let first_normal = job_result
-            .find("\\normal")
+            .find("\\.normal")
             .unwrap_or(usize::MAX);
         let first_whisper = job_result
-            .find("\\whisper")
+            .find("\\.whisper")
             .unwrap_or(usize::MAX);
 
         let first_responsetype_index = *vec![first_normal, first_reply, first_whisper]
@@ -122,7 +122,7 @@ impl Input {
             response_type = ResponseType::Whisper;
         }
 
-        for p in ["\\me", "\\notme", "\\reply", "\\normal", "\\whisper"] {
+        for p in ["\\.me", "\\.notme", "\\.reply", "\\.normal", "\\.whisper"] {
             job_result = job_result.replace(p, "");
         }
 

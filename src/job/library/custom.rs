@@ -99,6 +99,8 @@ impl Job for CustomJob {
                     let mut sim_input = Input::from_context_with_custom_text(input.ctx.clone(), inner_content.to_string(), "".to_string());
 
                     output.replace_range(start.index..end.index + 1, sim_input.get_job_result().as_str());
+
+                    input.ctx.environment = sim_input.ctx.environment;
                 }
             } else { break; }
 

@@ -4,6 +4,7 @@ use crate::bot::env::counter::Counter;
 use super::variable::Variable;
 use crate::job::job_parameter::JobParameter;
 use crate::job::job_pattern::JobPattern;
+use crate::job::library::counter::CounterJob;
 
 #[derive(Clone, Debug)]
 pub struct Environment {
@@ -12,7 +13,7 @@ pub struct Environment {
     pub prefix: String,
     pub variables: HashMap<String, Variable>,
     pub patterns: Vec<JobPattern>,
-    pub counters: Vec<Counter>,
+    pub counters: HashMap<String, Counter>,
 }
 
 impl Environment {
@@ -63,6 +64,26 @@ impl Environment {
     pub fn set_prefix(&mut self, prefix: String) {
         self.prefix = prefix;
     }
+
+    pub fn has_counter(&self, counter_name: &String) -> bool {
+        self.counters.contains_key(counter_name.as_str())
+    }
+
+    pub fn create_counter(&mut self, counter_name: String, value: i64) {
+        self.counters.insert(counter_name, Counter::new(value));
+    }
+
+    pub fn delete_counter(&mut self, counter_name: String) {
+        self.counters.remove(counter_name.as_str());
+    }
+
+    pub fn get_counter(&self, counter_name: &String) -> Option<&Counter> {
+        self.counters.get(counter_name.as_str())
+    }
+
+    pub fn get_mut_counter(&mut self, counter_name: &String) -> Option<&mut Counter> {
+        self.counters.get_mut(counter_name.as_str())
+    }
 }
 
 impl Default for Environment {
@@ -73,7 +94,7 @@ impl Default for Environment {
             prefix: "!".to_string(),
             variables: HashMap::new(),
             patterns: vec![],
-            counters: vec![],
+            counters: HashMap::new(),
         }
     }
 }

@@ -8,6 +8,7 @@ use crate::job::{
     job_parameter::JobParameter,
     job_pattern::JobPattern,
 };
+use crate::job::library::counter::CounterJob;
 use crate::job::library::PrefixJob;
 use super::library::{
     CommandJob,
@@ -23,6 +24,7 @@ impl JobManager {
             "ping" => { return PingJob::new().execute(input, params); }
             "command" | "cmd" | "pattern" => { return CommandJob::new().execute(input, params); }
             "prefix" => { return PrefixJob::new().execute(input, params); }
+            "counter" => { return CounterJob::new().execute(input, params); }
             _ => {}
         }
 
@@ -50,6 +52,7 @@ impl JobManager {
             "ping" => { return PingJob::new().get_params(); }
             "command" | "cmd" | "pattern" => { return CommandJob::new().get_params(); }
             "prefix" => { return PrefixJob::new().get_params(); }
+            "counter" => { return CounterJob::new().get_params(); }
             _ => {}
         }
 

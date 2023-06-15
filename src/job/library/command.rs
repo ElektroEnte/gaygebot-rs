@@ -37,7 +37,7 @@ impl Job for CommandJob {
         }
 
         let return_string = match action.as_str() {
-            "create" | "new" | "add" => { self.add_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
+            "create" | "new" => { self.create_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
             "edit" => { self.edit_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
             "remove" | "delete" | "rmv" => { self.remove_pattern(&mut input.ctx.environment, command) }
             "addargument" | "addarg" | "addparameter" | "addparam" | "addprm" => {
@@ -77,7 +77,7 @@ impl CommandJob {
         "Command not found.".to_string()
     }
 
-    fn add_pattern(&self, env: &mut Environment, name: String, output_pattern: String) -> String {
+    fn create_pattern(&self, env: &mut Environment, name: String, output_pattern: String) -> String {
         if env.has_pattern(&name) {
             return format!("Command pattern name '{}' already exists.", &name);
         }
@@ -87,7 +87,7 @@ impl CommandJob {
         }
 
         env.patterns.push(JobPattern::new(name.clone(), output_pattern));
-        format!("Added command pattern '{}' to environment '{}'.", &name, &env.name)
+        format!("Created command pattern '{}' in environment '{}'.", &name, &env.name)
     }
 
     

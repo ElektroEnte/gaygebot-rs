@@ -66,7 +66,6 @@ impl Job for CounterJob {
                     words
                         .get(3)
                         .unwrap_or(&"")
-                        .to_string()
                         .parse::<i64>()
                         .unwrap_or(input.ctx.environment.get_counter(&name).unwrap_or(&Counter::default()).get())
                 }
@@ -74,7 +73,6 @@ impl Job for CounterJob {
                     words
                         .get(3)
                         .unwrap_or(&"")
-                        .to_string()
                         .parse::<i64>()
                         .unwrap_or(0)
                 }

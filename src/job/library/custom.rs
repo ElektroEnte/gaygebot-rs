@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use async_trait::async_trait;
+
 use crate::bot::Input;
 use crate::job::{
     job_parameter::JobParameter,
@@ -65,8 +67,9 @@ pub struct CustomJob {
     pattern: JobPattern,
 }
 
+#[async_trait]
 impl Job for CustomJob {
-    fn execute(&self, input: &mut Input, params: HashMap<String, String>) -> String {
+    async fn execute(&self, input: &mut Input, params: HashMap<String, String>) -> String {
         let mut output = self.pattern.output_string.to_owned();
 
         if input.ctx.command_history.contains(&self.pattern.name.to_owned()) {
@@ -75,7 +78,7 @@ impl Job for CustomJob {
             input.ctx.command_history.push(self.pattern.name.to_owned());
         }
 
-        for param in self.get_params() {
+        for param in self.get_params().await {
             let mut given_param = params
                 .get(param.name.as_str())
                 .unwrap_or(&param.default);
@@ -98,7 +101,7 @@ impl Job for CustomJob {
                 if let Some(inner_content) = output.get(start.index + 1..end.index) {
                     let mut sim_input = Input::from_context_with_custom_text(input.ctx.clone(), inner_content.to_string(), "".to_string());
 
-                    output.replace_range(start.index..end.index + 1, sim_input.get_job_result().as_str());
+                    output.replace_range(start.index..end.index + 1, sim_input.get_job_result().await.as_str());
 
                     input.ctx.environment = sim_input.ctx.environment;
                 }
@@ -125,7 +128,7 @@ impl Job for CustomJob {
         output
     }
 
-    fn get_params(&self) -> Vec<JobParameter> {
+    async fn get_params(&self) -> Vec<JobParameter> {
         self.pattern.input_params.clone()
     }
 }

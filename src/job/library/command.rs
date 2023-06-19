@@ -1,4 +1,9 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+
+use async_trait::async_trait;
+
+use tokio::sync::Mutex;
 
 use crate::bot::{
     Input,
@@ -14,8 +19,9 @@ use super::super::{
 
 pub struct CommandJob;
 
+#[async_trait]
 impl Job for CommandJob {
-    fn execute(&self, input: &mut Input, params: HashMap<String, String>) -> String {
+    async fn execute(&self, input: &mut Input, params: HashMap<String, String>) -> String {
         // Prevent this job from being used in another job since it uses the original chat message.
         if input.ctx.command_history.len() > 0 { return "".to_string(); }
 
@@ -37,31 +43,34 @@ impl Job for CommandJob {
         }
 
         let return_string = match action.as_str() {
-            "create" | "new" => { self.create_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
-            "edit" => { self.edit_pattern(&mut input.ctx.environment, command, content.trim().to_string()) }
-            "remove" | "delete" | "rmv" => { self.remove_pattern(&mut input.ctx.environment, command) }
+            "create" | "new" => { self.create_pattern(Arc::clone(&input.ctx.environment), command, content.trim().to_string()).await }
+            "edit" => { self.edit_pattern(Arc::clone(&input.ctx.environment), command, content.trim().to_string()).await }
+            "remove" | "delete" | "rmv" => { self.remove_pattern(Arc::clone(&input.ctx.environment), command).await }
             "addargument" | "addarg" | "addparameter" | "addparam" | "addprm" => {
                 self.add_pattern_parameter(
-                    &mut input.ctx.environment,
+                    Arc::clone(&input.ctx.environment),
                     command,
                     words.get(3).unwrap_or(&"").to_string(),
                     words.get(4).unwrap_or(&"").to_string(),
                 )
+                    .await
             }
             "removeargument" | "removearg" | "rmvarg" | "removeparameter" | "removeparam" | "rmvparam" | "rmvprm" | "deleteargument" | "deletearg" | "deleteparameter" | "deleteparam" => {
                 self.remove_pattern_parameter(
-                    &mut input.ctx.environment,
+                    Arc::clone(&input.ctx.environment),
                     command,
-                    words.get(3).unwrap_or(&"").to_string())
+                    words.get(3).unwrap_or(&"").to_string()
+                )
+                    .await
             }
-            "info" | "debug" => { self.info(&mut input.ctx.environment, command) }
+            "info" | "debug" => { self.info(Arc::clone(&input.ctx.environment), command).await }
             _ => { "Invalid action.".to_string() }
         };
 
         format!("\\.me{}", return_string)
     }
 
-    fn get_params(&self) -> Vec<JobParameter> {
+    async fn get_params(&self) -> Vec<JobParameter> {
         vec![]
     }
 }
@@ -69,15 +78,18 @@ impl Job for CommandJob {
 impl CommandJob {
     pub fn new() -> Self { CommandJob {} }
 
-    fn info(&self, env: &mut Environment, name: String) -> String {
+    async fn info(&self, env: Arc<Mutex<Environment>>, name: String) -> String {
+        let env = env.lock().await;
         if let Some(pattern) = env.get_pattern(&name) {
             return format!("name: '{}', args: {:?}", pattern.name, pattern.input_params);
         }
+        drop(env);
 
         "Command not found.".to_string()
     }
 
-    fn create_pattern(&self, env: &mut Environment, name: String, output_pattern: String) -> String {
+    async fn create_pattern(&self, env: Arc<Mutex<Environment>>, name: String, output_pattern: String) -> String {
+        let mut env = env.lock().await;
         if env.has_pattern(&name) {
             return format!("Command pattern name '{}' already exists.", &name);
         }
@@ -91,7 +103,9 @@ impl CommandJob {
     }
 
     
-    fn edit_pattern(&self, env: &mut Environment, name: String, output_pattern: String) -> String {
+    async fn edit_pattern(&self, env: Arc<Mutex<Environment>>, name: String, output_pattern: String) -> String {
+        let mut env = env.lock().await;
+        
         if let Some(pattern) = env.get_mut_pattern(&name) {
             pattern.output_string = output_pattern
         } else {
@@ -102,7 +116,9 @@ impl CommandJob {
     }
 
     // Removes a pattern with the given name from the current env.
-    fn remove_pattern(&self, env: &mut Environment, name: String) -> String {
+    async fn remove_pattern(&self, env: Arc<Mutex<Environment>>, name: String) -> String {
+        let mut env = env.lock().await;
+        
         for (pattern, i) in env.patterns.iter().zip(0..env.patterns.len()) {
             if &pattern.name == &name {
                 env.patterns.remove(i);
@@ -114,7 +130,9 @@ impl CommandJob {
     }
 
     // Adds a parameter to the given pattern name in the current env.
-    fn add_pattern_parameter(&self, env: &mut Environment, pattern_name: String, param_name: String, param_default: String) -> String {
+    async fn add_pattern_parameter(&self, env: Arc<Mutex<Environment>>, pattern_name: String, param_name: String, param_default: String) -> String {
+        let mut env = env.lock().await;
+        
         if param_name == "".to_string() {
             return "Name of argument missing.".to_string();
         }
@@ -133,7 +151,8 @@ impl CommandJob {
         }
     }
 
-    fn remove_pattern_parameter(&self, env: &mut Environment, pattern_name: String, param_name: String) -> String {
+    async fn remove_pattern_parameter(&self, env: Arc<Mutex<Environment>>, pattern_name: String, param_name: String) -> String {
+        let mut env = env.lock().await;
         if param_name == "".to_string() {
             return "Name of parameter missing.".to_string();
         }

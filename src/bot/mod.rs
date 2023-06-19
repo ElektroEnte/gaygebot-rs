@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 pub use context::Context;
 pub use chatter::Chatter;
 pub use channel::Channel;
@@ -8,6 +7,7 @@ pub use bot_output::Output;
 pub use response_type::ResponseType;
 
 pub mod context;
+
 pub mod channel;
 pub mod message;
 pub mod chatter;
@@ -17,12 +17,17 @@ pub mod env;
 pub mod response_type;
 pub mod identifier;
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use tokio;
+use tokio::sync::Mutex;
 
 use twitch_irc::{ClientConfig, Error, login::StaticLoginCredentials, message::ServerMessage, SecureTCPTransport, TwitchIRCClient};
 use twitch_irc::message::PrivmsgMessage;
 
 use env::environment::Environment;
+use crate::bot::env::output_manager::OutputQueue;
 
 use crate::job::{
     job_manager::JobManager,
@@ -48,83 +53,88 @@ impl Bot {
             oauth,
         }
     }
-
+    
     pub fn generate_config(&self) -> ClientConfig<StaticLoginCredentials> {
         ClientConfig::new_simple(StaticLoginCredentials::new(self.login.to_owned(), self.oauth.to_owned()))
     }
-
+    
     /// runs the bot instance
     pub async fn run(&mut self, initial_channels: Vec<String>, log_mode: LogMode) -> Result<(), Error<SecureTCPTransport, StaticLoginCredentials>> {
         let config = self.generate_config();
-        let (mut incoming_messages, mut client) = TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(config);
-
-        let mut envs= HashMap::new();
-        envs.insert("default".to_string(), Environment::default());
-
+        let (mut incoming_messages, mut unsave_client) = TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(config);
+        
+        let client = Arc::new(Mutex::new(unsave_client));
+        
+        let mut envs: Arc<Mutex<HashMap<String, Arc<Mutex<Environment>>>>> = Arc::new(Mutex::new(HashMap::new()));
+        
+        envs.lock().await.insert("default".to_string(), Arc::new(Mutex::new(Environment::default())));
+        
+        let queue_arc = Arc::clone(&envs.lock().await.get("default").unwrap().lock().await.output_queue);
+        let client_arc = Arc::clone(&client);
+        
+        tokio::spawn(async move {
+            OutputQueue::run(queue_arc, client_arc).await;
+        });
+        
         let join_handle = tokio::spawn(async move {
             for channel in initial_channels {
-                client.join(channel).unwrap();
+                let locked_client = client.lock().await;
+                locked_client.join(channel).unwrap();
             }
-
+            
             while let Some(message) = incoming_messages.recv().await {
                 match log_mode {
                     LogMode::Debug => { println!("{:?}", message) }
                     LogMode::None => {}
                 };
-
+                
                 match message {
                     ServerMessage::Privmsg(msg) => {
-                        Bot::on_private_message(&mut client, msg, &mut envs).await?;
+                        let client_clone = Arc::clone(&client);
+                        let env_clone = Arc::clone(&envs);
+
+                        Bot::on_private_message(client_clone, msg, env_clone).await.unwrap();
                     }
                     _ => {}
                 };
             };
-
+            
             Ok(())
         });
-
+        
         join_handle.await.unwrap()?;
-
+        
         Ok(())
     }
-
-    async fn on_private_message(client: &mut TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>, msg: PrivmsgMessage, envs: &mut HashMap<String, Environment>) -> Result<(), Error<SecureTCPTransport, StaticLoginCredentials>> {
-        // let mut test_pattern = JobPattern::new("test".to_string(), "\\me\\replytest: Arg 1: '\\arg.1'".to_string());
-        // test_pattern.input_params.push(JobParameter::new("1".to_string(), "default arg 1".to_string()));
-        // test_env.patterns.push(test_pattern);
-        //
-        // let mut one_pattern = JobPattern::new("combineargs".to_string(), "\\arg.1\\arg.2".to_string());
-        // one_pattern.input_params.push(JobParameter::new("1".to_string(), "arg1".to_string()));
-        // one_pattern.input_params.push(JobParameter::new("2".to_string(), "arg2".to_string()));
-        // test_env.patterns.push(one_pattern);
-        //
-        // let mut pipe_test_pattern = JobPattern::new("pipetest".to_string(), "result from piping combine args to test: '{test {combineargs \\arg.1 \\arg.2 }}'".to_string());
-        // pipe_test_pattern.input_params.push(JobParameter::new("1".to_string(), "pipe_arg1".to_string()));
-        // pipe_test_pattern.input_params.push(JobParameter::new("2".to_string(), "pipe_arg2".to_string()));
-        // test_env.patterns.push(pipe_test_pattern);
-        //
-        // let mut ping_pipe_pattern = JobPattern::new("jobpipe".to_string(), "piped ping: '{ping}'".to_string());
-        // test_env.patterns.push(ping_pipe_pattern);
-        //
-        // let mut pipe1 = JobPattern::new("pipe1".to_string(), "pipe pipe2: '{pipe2}'".to_string());
-        // test_env.patterns.push(pipe1);
-        //
-        // let mut pipe2 = JobPattern::new("pipe2".to_string(), "pipe pipe1: '{pipe1}'".to_string());
-        // test_env.patterns.push(pipe2);
-
-        // let mut dinkdonk = JobPattern::new("dinkdonk".to_string(), "\\reply".to_string());
-        // dinkdonk.identifier = Identifier::new(IdentifierType::Username("mzntori".to_string()));
-        // test_env.patterns.push(dinkdonk);
-
+    
+    async fn on_private_message(
+        client: Arc<Mutex<TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>>>,
+        msg: PrivmsgMessage,
+        envs: Arc<Mutex<HashMap<String, Arc<Mutex<Environment>>>>>,
+    ) -> Result<(), Error<SecureTCPTransport, StaticLoginCredentials>> {
+        let now = std::time::Instant::now();
+        
         let mut ctx = Context::from(msg);
-        ctx.environment = envs.get("default").unwrap_or(&Environment::default()).clone();
-        let mut input = Input::from(ctx);
-        let mut output = input.execute_as_job();
-
-        output.send_in_context_using(client).await?;
-
-        envs.insert("default".to_string(), output.input.ctx.environment);
-
+        
+        let locked_envs = envs.lock().await;
+        let env = Arc::clone(&locked_envs.get("default").unwrap());
+        drop(locked_envs);
+        
+        ctx.set_env(&env);
+        
+        let mut input = Input::generate_from_context(ctx).await;
+        
+        let locked_env = env.lock().await;
+        let queue_arc = Arc::clone(&locked_env.output_queue);
+        drop(locked_env);
+        
+        let mut locked_queue = queue_arc.lock().await;
+        locked_queue.add(input.execute_as_job().await).await;
+        drop(locked_queue);
+        
+        
+        println!("{}", now.elapsed().as_micros());
+        
         Ok(())
     }
 }

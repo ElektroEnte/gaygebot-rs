@@ -1,10 +1,23 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
+
+use tokio::time::Instant;
+
 use crate::bot::Context;
 use crate::bot::env::counter::Counter;
+use crate::bot::env::output_manager::OutputQueue;
 use super::variable::Variable;
 use crate::job::job_parameter::JobParameter;
 use crate::job::job_pattern::JobPattern;
 use crate::job::library::counter::CounterJob;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum BotPermissions {
+    Default,
+    Super,
+}
 
 #[derive(Clone, Debug)]
 pub struct Environment {
@@ -14,6 +27,8 @@ pub struct Environment {
     pub variables: HashMap<String, Variable>,
     pub patterns: Vec<JobPattern>,
     pub counters: HashMap<String, Counter>,
+    pub permissions: BotPermissions,
+    pub output_queue: Arc<Mutex<OutputQueue>>,
 }
 
 impl Environment {
@@ -95,6 +110,8 @@ impl Default for Environment {
             variables: HashMap::new(),
             patterns: vec![],
             counters: HashMap::new(),
+            permissions: BotPermissions::Default,
+            output_queue: Arc::new(Mutex::new(OutputQueue::default())),
         }
     }
 }

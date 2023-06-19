@@ -15,14 +15,40 @@ pub struct Input {
     pub ctx: Context,
 }
 
-impl From<Context> for Input {
-    fn from(ctx: Context) -> Self {
+// impl From<Context> for Input {
+//     fn from(ctx: Context) -> Self {
+//         let mut identifier: Option<String> = None;
+//         let mut args: Vec<String> = vec![];
+//         let mut kwargs: HashMap<String, String> = HashMap::new();
+//
+//         let message_text = ctx.message.text.clone();
+//         let env_prefix = ctx.environment.lock().await.prefix.clone();
+//
+//         if let Some(message_text_no_prefix) = message_text.strip_prefix(&env_prefix) {
+//             for word in message_text_no_prefix.split(' ').into_iter() {
+//                 if identifier == None {
+//                     identifier = Some(word.to_string());
+//                 } else {
+//                     match word.split_once(":") {
+//                         Some((key, value)) => { kwargs.insert(key.to_string(), value.to_string()); }
+//                         None => { args.push(word.to_string()) }
+//                     }
+//                 }
+//             }
+//         }
+//
+//         return Input { text: message_text, identifier, args, kwargs, ctx };
+//     }
+// }
+
+impl Input {
+    pub async fn generate_from_context(ctx: Context) -> Self {
         let mut identifier: Option<String> = None;
         let mut args: Vec<String> = vec![];
         let mut kwargs: HashMap<String, String> = HashMap::new();
 
         let message_text = ctx.message.text.clone();
-        let env_prefix = ctx.environment.prefix.clone();
+        let env_prefix = ctx.environment.lock().await.prefix.clone();
 
         if let Some(message_text_no_prefix) = message_text.strip_prefix(&env_prefix) {
             for word in message_text_no_prefix.split(' ').into_iter() {
@@ -39,14 +65,12 @@ impl From<Context> for Input {
 
         return Input { text: message_text, identifier, args, kwargs, ctx };
     }
-}
-
-impl Input {
-    pub fn get_job_result(&mut self) -> String {
+    
+    pub async fn get_job_result(&mut self) -> String {
         let job_name = &self.identifier.clone().unwrap_or("".to_string());
         let mut job_parameter: HashMap<String, String> = HashMap::new();
 
-        for parameter in JobManager::get_job_params(job_name, &self) {
+        for parameter in JobManager::get_job_params(job_name, &self).await {
             let key = parameter.name;
 
             if self.kwargs.contains_key(key.clone().as_str()) {
@@ -60,11 +84,11 @@ impl Input {
 
         // println!("{}\n{:?}", job_name, job_parameter);
 
-        JobManager::execute_job(job_name, self, job_parameter)
+        JobManager::execute_job(job_name, self, job_parameter).await
     }
 
-    pub fn execute_as_job(mut self) -> Output {
-        let mut job_result = self.get_job_result();
+    pub async fn execute_as_job(mut self) -> Output {
+        let mut job_result = self.get_job_result().await;
         let mut response_type: ResponseType = ResponseType::Normal;
         let mut is_me: bool = false;
 
